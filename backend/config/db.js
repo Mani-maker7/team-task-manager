@@ -3,39 +3,29 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'team_task_manager',
-};
-
 let pool;
 
 export async function initDB() {
   try {
-    // Connect without database first to create it if it doesn't exist
-    const connection = await mysql.createConnection({
-      host: dbConfig.host,
-      user: dbConfig.user,
-      password: dbConfig.password,
-    });
-
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\`;`);
-    await connection.end();
-
-    // Now connect with database
     pool = mysql.createPool({
-      ...dbConfig,
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      port: process.env.DB_PORT || 3306,
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0,
     });
 
-    console.log('Database connected successfully');
+    // Test connection
+    await pool.query('SELECT 1');
+
+    console.log('MySQL Connected');
+
     await createTables();
+
   } catch (error) {
-    console.error('Database initialization failed:', error.message);
+    console.error('DB INIT FAILED:', error.message);
   }
 }
 
@@ -46,7 +36,7 @@ async function createTables() {
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
-      role ENUM('admin', 'member') DEFAULT 'member',
+      role ENUM('admin','member') DEFAULT 'member',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
@@ -56,8 +46,7 @@ async function createTables() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       created_by INT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
@@ -65,9 +54,7 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS project_members (
       id INT AUTO_INCREMENT PRIMARY KEY,
       project_id INT,
-      user_id INT,
-      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      user_id INT
     );
   `;
 
@@ -76,13 +63,11 @@ async function createTables() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
       description TEXT,
-      status ENUM('pending', 'in_progress', 'completed') DEFAULT 'pending',
+      status ENUM('pending','in_progress','completed') DEFAULT 'pending',
       assigned_to INT,
       project_id INT,
       due_date DATE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
@@ -91,10 +76,18 @@ async function createTables() {
     await pool.query(projectsTable);
     await pool.query(projectMembersTable);
     await pool.query(tasksTable);
-    console.log('Tables verified/created in MySQL');
+
+    console.log('Tables ready');
   } catch (error) {
-    console.error('Error creating tables:', error.message);
+    console.error('TABLE ERROR:', error.message);
   }
 }
 
-export const query = (sql, params = []) => pool.query(sql, params);
+// 🔥 SAFE QUERY FUNCTION
+export const query = async (sql, params = []) => {
+  if (!pool) {
+    throw new Error("Database not initialized");
+  }
+  const [rows] = await pool.execute(sql, params);
+  return [rows];
+};
