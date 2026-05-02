@@ -1,0 +1,38 @@
+@reference "tailwindcss";
+
+.navbar {
+  @apply bg-slate-900 border-b border-slate-800 backdrop-blur-sm fixed top-0 w-full z-50;
+  padding: 0.75rem 0;
+}
+
+.navbar-content {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between;
+}
+
+.navbar-brand {
+  @apply flex items-center text-white transition-colors hover:text-blue-400 no-underline;
+}
+
+.navbar-links {
+  @apply flex items-center gap-6;
+}
+
+.nav-link {
+  @apply text-slate-300 hover:text-white text-sm font-medium transition-colors no-underline;
+}
+
+.user-info {
+  @apply text-slate-400 text-sm hidden sm:inline;
+}
+
+.logout-btn {
+  @apply bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-medium hover:bg-slate-700 transition-all border border-slate-700 cursor-pointer;
+}
+
+.login-link {
+  @apply bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-semibold hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20 no-underline;
+}
+
+.logged-in-area, .logged-out-area {
+  @apply flex items-center gap-6;
+}
